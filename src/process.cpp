@@ -4,30 +4,46 @@
 #include <string>
 #include <vector>
 
+#include "linux_parser.h"
 #include "process.h"
 
 using std::string;
 using std::to_string;
 using std::vector;
 
-// TODO: Return this process's ID
-int Process::Pid() { return 0; }
+Process::Process(int mPid,float sysUptime) : m_pid(mPid) {
+    m_command=LinuxParser::Command(m_pid);
+    m_ram=LinuxParser::Ram(m_pid);
+    m_user=LinuxParser::User(m_pid);
 
-// TODO: Return this process's CPU utilization
-float Process::CpuUtilization() { return 0; }
+    auto values=LinuxParser::ParseStateFile(m_pid);
+    float freq=sysconf(_SC_CLK_TCK);
+    auto uptime=values["uptime"];
+    auto stime=values["stime"];
+    auto cutime=values["cutime"];
+    auto cstime=values["cstime"];
+    auto starttime=values["starttime"];
 
-// TODO: Return the command that generated this process
-string Process::Command() { return string(); }
+    m_upTime=uptime/freq;
+    auto total_time=uptime+stime+cutime+cstime;
+    auto seconds=sysUptime-(starttime/freq);
+    m_cpuUsage=(total_time/freq)/seconds;
+}
 
-// TODO: Return this process's memory utilization
-string Process::Ram() { return string(); }
+int Process::Pid() { return m_pid; }
 
-// TODO: Return the user (name) that generated this process
-string Process::User() { return string(); }
+float Process::CpuUtilization() { return m_cpuUsage; }
 
-// TODO: Return the age of this process (in seconds)
-long int Process::UpTime() { return 0; }
+string Process::Command() { return m_command; }
+
+string Process::Ram() { return m_ram; }
+
+string Process::User() { return m_user; }
+
+long int Process::UpTime() { return m_upTime; }
 
 // TODO: Overload the "less than" comparison operator for Process objects
 // REMOVE: [[maybe_unused]] once you define the function
 bool Process::operator<(Process const& a[[maybe_unused]]) const { return true; }
+
+
